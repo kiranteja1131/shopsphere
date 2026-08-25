@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-mongoose.connect("mongodb://mongodb:27017/shopsphere")
+mongoose.connect("mongodb://shopsphere-mongodb:27017/shopsphere")
     .then(() => console.log("MongoDB connected"))
     .catch(err => console.error("MongoDB connection error:", err));
 
