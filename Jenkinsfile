@@ -40,12 +40,13 @@ pipeline {
             }
         }
 
-        stage('Check Kubernetes') {
-            steps {
-                bat 'kubectl version --client'
-                bat 'kubectl get nodes'
-            }
-        }
+        stage('Deploy to Kubernetes') {
+    steps {
+        bat 'kubectl apply -f k8s/'
+        bat 'kubectl rollout status deployment/shopsphere-backend'
+        bat 'kubectl rollout status deployment/shopsphere-frontend'
+    }
+}
 
         stage('Build Complete Stack') {
             steps {
