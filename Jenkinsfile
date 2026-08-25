@@ -37,6 +37,11 @@ pipeline {
                      bat 'docker push %DOCKER_USERNAME%/shopsphere-frontend:latest'
         }
     }
+}       stage('Check Kubernetes') {
+    steps {
+        bat 'kubectl version --client'
+        bat 'kubectl get nodes'
+    }
 }
 
         stage('Build Complete Stack') {
