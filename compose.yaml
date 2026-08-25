@@ -1,0 +1,21 @@
+services:
+  backend:
+    build: ./backend
+    container_name: shopsphere-backend
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+
+  frontend:
+    build: ./frontend
+    container_name: shopsphere-frontend
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+  mongodb:
+    image: mongo:8
+    container_name: shopsphere-mongodb
+    ports:
+      - "27017:27017"
