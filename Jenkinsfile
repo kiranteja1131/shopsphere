@@ -1,67 +1,66 @@
+```groovy
 pipeline {
     agent any
 
-    stages {
+    environment {
+        DOCKERHUB_USER = ''
+    }
 
+    stages {
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Build Backend Image') {
+        stage('Build Images') {
             steps {
-                bat 'docker build -t shopsphere-backend ./backend'
+                sh '''
+                    docker build -t shopsphere-backend:${BUILD_NUMBER} ./backend
+                    docker build -t shopsphere-frontend:${BUILD_NUMBER} ./frontend
+                '''
             }
         }
 
-        stage('Build Frontend Image') {
-            steps {
-                bat 'docker build -t shopsphere-frontend ./frontend'
-            }
-        }
-
-        stage('Push Images to Docker Hub') {
+        stage('Push Images') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USERNAME',
-                    passwordVariable: 'DOCKER_PASSWORD'
+                    credentialsId: 'c6f1da3b-93a3-4747-a75b-2ecaaca226aa',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_TOKEN'
                 )]) {
+                    sh '''
+                        echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
 
-                    bat 'docker login -u %DOCKER_USERNAME% -p %DOCKER_PASSWORD%'
+                        docker tag shopsphere-backend:${BUILD_NUMBER} "$DOCKER_USER/shopsphere-backend:latest"
+                        docker tag shopsphere-frontend:${BUILD_NUMBER} "$DOCKER_USER/shopsphere-frontend:latest"
 
-                    bat 'docker tag shopsphere-backend %DOCKER_USERNAME%/shopsphere-backend:latest'
-                    bat 'docker tag shopsphere-frontend %DOCKER_USERNAME%/shopsphere-frontend:latest'
+                        docker push "$DOCKER_USER/shopsphere-backend:latest"
+                        docker push "$DOCKER_USER/shopsphere-frontend:latest"
 
-                    bat 'docker push %DOCKER_USERNAME%/shopsphere-backend:latest'
-                    bat 'docker push %DOCKER_USERNAME%/shopsphere-frontend:latest'
+                        docker logout
+                    '''
                 }
             }
         }
 
-        stage('Deploy to Kubernetes') {
-    steps {
-        bat 'kubectl apply -f k8s/'
-        bat 'kubectl rollout status deployment/shopsphere-backend'
-        bat 'kubectl rollout status deployment/shopsphere-frontend'
-    }
-}
-
-        stage('Build Complete Stack') {
+        stage('Deploy on EC2') {
             steps {
-                bat 'docker compose config'
+                sh '''
+                    cd /home/ubuntu/shopsphere
+                    docker compose up -d --build
+                '''
             }
         }
     }
 
     post {
         success {
-            echo 'ShopSphere CI pipeline completed successfully!'
+            echo 'ShopSphere pipeline completed successfully!'
         }
-
         failure {
-            echo 'ShopSphere CI pipeline failed!'
+            echo 'ShopSphere pipeline failed. Check the console output.'
         }
     }
 }
+```
