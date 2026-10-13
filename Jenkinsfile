@@ -46,7 +46,6 @@ pipeline {
         stage('Deploy on EC2') {
             steps {
                 sh '''
-                    cd /home/ubuntu/shopsphere
                     docker compose up -d --build
                 '''
             }
