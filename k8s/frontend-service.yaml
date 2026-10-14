@@ -2,11 +2,14 @@ apiVersion: v1
 kind: Service
 metadata:
   name: shopsphere-frontend
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    service.beta.kubernetes.io/aws-load-balancer-subnets: subnet-0e68fb9669393b7f1,subnet-0594214322a738f24,subnet-0ba8cba5f3f64995d
 spec:
+  type: LoadBalancer
+  loadBalancerClass: eks.amazonaws.com/nlb
   selector:
     app: shopsphere-frontend
   ports:
-    - protocol: TCP
-      port: 80
+    - port: 80
       targetPort: 80
-  type: NodePort

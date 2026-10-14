@@ -6,7 +6,7 @@ let cart = 0;
 // Fetch products from the backend API
 async function loadProducts() {
     try {
-        const response = await fetch("http://13.207.127.18:5000/api/products");
+        const response = await fetch("/api/products");
         const products = await response.json();
 
         products.forEach(product => {
