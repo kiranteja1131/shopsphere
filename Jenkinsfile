@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_USER = ''
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
     }
 
     stages {
@@ -31,11 +31,11 @@ pipeline {
                     sh '''
                         echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
 
-                        docker tag shopsphere-backend:${BUILD_NUMBER} "$DOCKER_USER/shopsphere-backend:latest"
-                        docker tag shopsphere-frontend:${BUILD_NUMBER} "$DOCKER_USER/shopsphere-frontend:latest"
+                        docker tag shopsphere-backend:${BUILD_NUMBER} "$DOCKER_USER/shopsphere-backend:${BUILD_NUMBER}"
+                        docker tag shopsphere-frontend:${BUILD_NUMBER} "$DOCKER_USER/shopsphere-frontend:${BUILD_NUMBER}"
 
-                        docker push "$DOCKER_USER/shopsphere-backend:latest"
-                        docker push "$DOCKER_USER/shopsphere-frontend:latest"
+                        docker push "$DOCKER_USER/shopsphere-backend:${BUILD_NUMBER}"
+                        docker push "$DOCKER_USER/shopsphere-frontend:${BUILD_NUMBER}"
 
                         docker logout
                     '''
@@ -43,21 +43,34 @@ pipeline {
             }
         }
 
-        stage('Deploy on EC2') {
+        stage('Deploy to EKS') {
             steps {
-                sh '''
-                    docker compose up -d --build
-                '''
+                withCredentials([usernamePassword(
+                    credentialsId: 'c6f1da3b-93a3-4747-a75b-2ecaaca226aa',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_TOKEN'
+                )]) {
+                    sh '''
+                        kubectl set image deployment/shopsphere-backend \
+                          backend="$DOCKER_USER/shopsphere-backend:${BUILD_NUMBER}"
+
+                        kubectl set image deployment/shopsphere-frontend \
+                          frontend="$DOCKER_USER/shopsphere-frontend:${BUILD_NUMBER}"
+
+                        kubectl rollout status deployment/shopsphere-backend --timeout=180s
+                        kubectl rollout status deployment/shopsphere-frontend --timeout=180s
+                    '''
+                }
             }
         }
     }
 
     post {
         success {
-            echo 'ShopSphere pipeline completed successfully!'
+            echo 'ShopSphere successfully deployed to EKS!'
         }
         failure {
-            echo 'ShopSphere pipeline failed. Check the console output.'
+            echo 'Pipeline failed. Check the Jenkins console output.'
         }
     }
 }
